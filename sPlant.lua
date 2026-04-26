@@ -17,7 +17,7 @@ TargetTileID  = TargetTileID  or 455    -- ID tile fg di WORLD yang dicari/ditum
 DelayFindPath = DelayFindPath or 50
 DelayStepPath = DelayStepPath or 100
 DelayShortPath= DelayShortPath or 0
-DelayPlant    = DelayPlant    or 80
+DelayPlant    = DelayPlant    or 68
 WorldSizeX    = WorldSizeX    or 199
 WorldSizeY    = WorldSizeY    or 192
 
@@ -222,58 +222,58 @@ end
 
 function Main()
   if not InWorld() then
-    LogToConsole("`1[AutoPlant] `4ERROR: Player belum masuk world!")
+    LogToConsole("`1[AmoleXClaude] `4ERROR: Player belum masuk world!")
     return
   end
 
   if not HasSeed(SeedID) then
-    LogToConsole("`1[AutoPlant] `4ERROR: Seed ID " .. SeedID .. " tidak ada di inventory!")
+    LogToConsole("`1[AmoleXClaude] `4ERROR: Seed ID " .. SeedID .. " tidak ada di inventory!")
     return
   end
 
-  LogToConsole("`1[AutoPlant] `2Script dimulai.")
-  LogToConsole("`1[AutoPlant] `7Seed Inventory : `6" .. SeedID)
-  LogToConsole("`1[AutoPlant] `7Tile Target fg : `6" .. TargetTileID)
-  LogToConsole("`1[AutoPlant] `7World Size     : `6" .. WorldSizeX .. " x " .. WorldSizeY)
-  LogToConsole("`1[AutoPlant] `2Scanning world...")
+  LogToConsole("`1[AmoleXClaude] `2Script dimulai.")
+  LogToConsole("`1[AmoleXClaude] `7Seed Inventory : `6" .. SeedID)
+  LogToConsole("`1[AmoleXClaude] `7Tile Target fg : `6" .. TargetTileID)
+  LogToConsole("`1[AmoleXClaude] `7World Size     : `6" .. WorldSizeX .. " x " .. WorldSizeY)
+  LogToConsole("`1[AmoleXClaude] `2Scanning world...")
 
   local targets = ScanTargetTiles()
 
   if #targets == 0 then
-    LogToConsole("`1[AutoPlant] `4Tidak ada tile fg=" .. TargetTileID .. " di world. Script berhenti.")
+    LogToConsole("`1[AmoleXClaude] `4Tidak ada tile fg=" .. TargetTileID .. " di world. Script berhenti.")
     return
   end
 
-  LogToConsole("`1[AutoPlant] `2Ditemukan `6" .. #targets .. " `2tile. Mulai menanam...")
+  LogToConsole("`1[AmoleXClaude] `2Ditemukan `6" .. #targets .. " `2tile. Mulai menanam...")
 
   local planted = 0
   local skipped = 0
 
   for i, tile in ipairs(targets) do
     if not InWorld() then
-      LogToConsole("`1[AutoPlant] `4Koneksi terputus.")
+      LogToConsole("`1[AmoleXClaude] `4Koneksi terputus.")
       break
     end
     if not HasSeed(SeedID) then
-      LogToConsole("`1[AutoPlant] `4Seed habis di inventory. Script berhenti.")
+      LogToConsole("`1[AmoleXClaude] `4Seed habis di inventory. Script berhenti.")
       break
     end
 
-    LogToConsole(string.format("`1[AutoPlant] `7[%d/%d] `2X:`6%d `2Y:`6%d", i, #targets, tile.x, tile.y))
+    LogToConsole(string.format("`1[AmoleXClaude] `7[%d/%d] `2X:`6%d `2Y:`6%d", i, #targets, tile.x, tile.y))
 
     local ok = PlantAt(tile.x, tile.y)
     if ok then planted = planted + 1 else skipped = skipped + 1 end
   end
 
   local remaining = ScanTargetTiles()
-  LogToConsole("`1[AutoPlant] `2==============================")
-  LogToConsole("`1[AutoPlant] `2Selesai! Ditanam: `6" .. planted .. " `2| Dilewati: `8" .. skipped)
+  LogToConsole("`1[AmoleXClaude] `2==============================")
+  LogToConsole("`1[AmoleXClaude] `2Selesai! Ditanam: `6" .. planted .. " `2| Dilewati: `8" .. skipped)
   if #remaining == 0 then
-    LogToConsole("`1[AutoPlant] `2Tidak ada lagi tile fg=" .. TargetTileID .. ". Script selesai.")
+    LogToConsole("`1[AmoleXClaude] `2Tidak ada lagi tile fg=" .. TargetTileID .. ". Script selesai.")
   else
-    LogToConsole("`1[AutoPlant] `4Masih ada `6" .. #remaining .. " `4tile tersisa.")
+    LogToConsole("`1[AmoleXClaude] `4Masih ada `6" .. #remaining .. " `4tile tersisa.")
   end
 end
 
-LogToConsole("`2Version: `21.0")
+LogToConsole("`2Version: `91.0")
 Main()
