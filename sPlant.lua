@@ -14,10 +14,10 @@
 SeedID        = SeedID        or 5640   -- ID seed di INVENTORY yang akan ditanam
 TargetTileID  = TargetTileID  or 455    -- ID tile fg di WORLD yang dicari/ditumpuk
 
-DelayFindPath = DelayFindPath or 50
-DelayStepPath = DelayStepPath or 100
+DelayFindPath = DelayFindPath or 45
+DelayStepPath = DelayStepPath or 90
 DelayShortPath= DelayShortPath or 0
-DelayPlant    = DelayPlant    or 68
+DelayPlant    = DelayPlant    or 65
 WorldSizeX    = WorldSizeX    or 199
 WorldSizeY    = WorldSizeY    or 192
 
