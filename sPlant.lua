@@ -2,15 +2,15 @@
 --  AUTO PLANT SCRIPT - Bothax Growtopia (DEBUG VERSION)
 -- ============================================================
 
-SeedID        = SeedID        or 11
-TargetTileID  = TargetTileID  or 8
+SeedID        = SeedID        or 5640
+TargetTileID  = TargetTileID  or 455
 
 DelayFindPath = DelayFindPath or 50
 DelayStepPath = DelayStepPath or 100
 DelayShortPath= DelayShortPath or 0
 DelayPlant    = DelayPlant    or 300  -- dinaikkan sementara untuk debug
-WorldSizeX    = WorldSizeX    or 100
-WorldSizeY    = WorldSizeY    or 60
+WorldSizeX    = WorldSizeX    or 199
+WorldSizeY    = WorldSizeY    or 192
 
 -- ============================================================
 --  InWorld
