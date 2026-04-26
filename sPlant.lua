@@ -277,6 +277,6 @@ end
 
 LogToConsole("`2Version: `91.0")
 Sleep(5)
-LogToConsole("`1[AmoleXClaude] `4Loading...)
+LogToConsole("`1[AmoleXClaude] `4Loading...")
 Sleep(1000)
 Main()
