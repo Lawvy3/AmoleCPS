@@ -1,14 +1,23 @@
 -- ============================================================
---  AUTO PLANT SCRIPT - Bothax Growtopia (DEBUG VERSION)
+--  AUTO PLANT SCRIPT - Bothax Growtopia
+--  Logic:
+--    - Scan world cari tile fg == TargetTileID
+--    - TelePath ke tile tersebut
+--    - FindPath (rangeTrigger) ke tile tersebut agar server register posisi
+--    - Kirim packet plant SeedID
 -- ============================================================
 
-SeedID        = SeedID        or 5640
-TargetTileID  = TargetTileID  or 455
+-- ============================================================
+--  KONFIGURASI BEBAS (Custom oleh User)
+-- ============================================================
+
+SeedID        = SeedID        or 5640   -- ID seed di INVENTORY yang akan ditanam
+TargetTileID  = TargetTileID  or 455    -- ID tile fg di WORLD yang dicari/ditumpuk
 
 DelayFindPath = DelayFindPath or 50
 DelayStepPath = DelayStepPath or 100
 DelayShortPath= DelayShortPath or 0
-DelayPlant    = DelayPlant    or 300  -- dinaikkan sementara untuk debug
+DelayPlant    = DelayPlant    or 80
 WorldSizeX    = WorldSizeX    or 199
 WorldSizeY    = WorldSizeY    or 192
 
@@ -37,85 +46,126 @@ function HasSeed(id)
 end
 
 -- ============================================================
---  PATHFINDING
+--  PATHFINDING (persis dari referensi PTHT asli)
 -- ============================================================
 
-local _origFP = (type(FindPath) == "function") and FindPath or function(x, y, r) end
-local STEP_SIZE    = 2
-local MAX_STEPS    = 2000
-local TRY_PER_STEP = 5
-local NO_PROG_LIM  = 3
+local _origFindPath = (type(FindPath) == "function") and FindPath or function(x, y, r) end
+local TELEPATH_STEP_SLEEP        = DelayStepPath
+local TELEPATH_TRY_PER_STEP      = 5
+local TELEPATH_MAX_STEPS         = 1000
+local TELEPATH_FALLBACK          = true
+local TELEPATH_NO_PROGRESS_LIMIT = 3
+local TELEPATH_STEP_SIZE         = 2
 
 local function sign(v) return (v > 0 and 1) or (v < 0 and -1) or 0 end
 
-local function gOgOPath(x, y)
+function GoPath(t, s, v, x, y)
   if not InWorld() then return end
-  local pl = GetLocal()
-  if not pl then return end
-  SendVariantList({[0] = "OnSetPos", [1] = {x = x * 32, y = y * 32}}, pl.netid)
-  SendPacketRaw(false, {type = 3, state = 1, value = 0, px = x, py = y, x = x * 32, y = y * 32})
+  SendPacketRaw(false, {type = t, state = s, value = v, px = x, py = y, x = x * 32, y = y * 32})
+  if t == nil then
+    SendVariantList({[0] = "OnSetPos", [1] = {x = x * 32, y = y * 32}}, GetLocal().netid)
+  end
 end
 
-function TelePath(tx, ty)
+function gOgOPath(x, y)
+  GoPath(nil, nil, nil, x, y)
+  GoPath(3, 1, 0, x, y)
+end
+
+function TelePath(tx, ty, rangeTrigger)
+  rangeTrigger = rangeTrigger or DelayFindPath
   if not InWorld() then return end
-  local pl = GetLocal()
-  if not pl or not pl.pos then pcall(_origFP, tx, ty, 520) return end
 
-  local cx = math.floor(pl.pos.x / 32)
-  local cy = math.floor(pl.pos.y / 32)
-  if cx == tx and cy == ty then return end
-
-  if (math.abs(cx - tx) + math.abs(cy - ty)) <= 10 then
-    local pl2 = GetLocal()
-    if pl2 then
-      SendVariantList({[0] = "OnSetPos", [1] = {x = tx * 32, y = ty * 32}}, pl2.netid)
+  local player = GetLocal()
+  if player and player.pos then
+    local px = math.floor(player.pos.x / 32)
+    local py = math.floor(player.pos.y / 32)
+    local distance = math.abs(px - tx) + math.abs(py - ty)
+    if distance <= 10 then
+      ShortDelay = true
+    else
+      ShortDelay = false
     end
-    Sleep(DelayShortPath)
-    return
   end
 
-  local steps = 0
-  local no_prog = 0
+  if ShortDelay then return GoPath(nil, nil, nil, tx, ty) end
 
-  while (cx ~= tx or cy ~= ty) and InWorld() and steps < MAX_STEPS do
+  local pl = GetLocal()
+  if not pl or not pl.pos then
+    return _origFindPath(tx, ty, 520)
+  end
+
+  local cx = pl.pos.x // 32
+  local cy = pl.pos.y // 32
+  if cx == tx and cy == ty then return end
+
+  local steps = 0
+  local no_progress_count = 0
+
+  while (cx ~= tx or cy ~= ty) and InWorld() and steps < TELEPATH_MAX_STEPS do
     steps = steps + 1
-    local dx, dy = tx - cx, ty - cy
+    local dx = tx - cx
+    local dy = ty - cy
     local nx, ny = cx, cy
 
     if math.abs(dx) >= math.abs(dy) then
-      nx = cx + sign(dx) * math.min(STEP_SIZE, math.abs(dx))
+      nx = cx + sign(dx) * math.min(TELEPATH_STEP_SIZE, math.abs(dx))
     else
-      ny = cy + sign(dy) * math.min(STEP_SIZE, math.abs(dy))
+      ny = cy + sign(dy) * math.min(TELEPATH_STEP_SIZE, math.abs(dy))
     end
 
     gOgOPath(nx, ny)
-    Sleep(DelayFindPath)
+    Sleep(ShortDelay and DelayShortPath or DelayFindPath)
 
+    local try = 0
     local reached = false
-    for _ = 1, TRY_PER_STEP do
-      Sleep(DelayStepPath)
+    while try < TELEPATH_TRY_PER_STEP and InWorld() do
+      Sleep(TELEPATH_STEP_SLEEP)
       local pl2 = GetLocal()
-      if pl2 and pl2.pos then
-        if math.floor(pl2.pos.x / 32) == nx and math.floor(pl2.pos.y / 32) == ny then
-          reached = true
-          break
-        end
+      if pl2 and pl2.pos and pl2.pos.x // 32 == nx and pl2.pos.y // 32 == ny then
+        reached = true
+        break
       end
+      try = try + 1
     end
 
     if reached then
       cx, cy = nx, ny
-      no_prog = 0
+      no_progress_count = 0
     else
-      no_prog = no_prog + 1
-      if no_prog >= NO_PROG_LIM then pcall(_origFP, tx, ty, 520) return end
+      -- coba alternatif arah Y
+      local alt_done = false
+      if nx ~= cx and cy ~= ty then
+        local alt_ny = cy + sign(ty - cy) * math.min(TELEPATH_STEP_SIZE, math.abs(ty - cy))
+        gOgOPath(cx, alt_ny)
+        local try2 = 0
+        while try2 < TELEPATH_TRY_PER_STEP and InWorld() do
+          Sleep(TELEPATH_STEP_SLEEP)
+          local pl3 = GetLocal()
+          if pl3 and pl3.pos and pl3.pos.x // 32 == cx and pl3.pos.y // 32 == alt_ny then
+            cy = alt_ny
+            alt_done = true
+            break
+          end
+          try2 = try2 + 1
+        end
+      end
+      if not alt_done then
+        no_progress_count = no_progress_count + 1
+      end
     end
+
+    if no_progress_count >= TELEPATH_NO_PROGRESS_LIMIT then
+      if TELEPATH_FALLBACK then _origFindPath(tx, ty, 520) end
+      return
+    end
+
     Sleep(10)
   end
 end
 
 -- ============================================================
---  SCAN
+--  SCAN WORLD
 -- ============================================================
 
 function ScanTargetTiles()
@@ -132,54 +182,37 @@ function ScanTargetTiles()
 end
 
 -- ============================================================
---  PLANT (dengan debug log lengkap)
+--  PLANT
+--  Menggunakan FindPath (bukan TelePath) sebagai trigger plant
+--  persis seperti cara script PTHT asli register posisi ke server
 -- ============================================================
 
 function PlantAt(tx, ty)
-  TelePath(tx, ty)
+  -- Step 1: TelePath dulu biar dekat
+  TelePath(tx, ty, DelayFindPath)
   Sleep(DelayPlant)
 
-  -- Debug: cek posisi player sekarang
-  local pl = GetLocal()
-  if pl and pl.pos then
-    local px = math.floor(pl.pos.x / 32)
-    local py = math.floor(pl.pos.y / 32)
-    LogToConsole(string.format("`1[DEBUG] `7Posisi player setelah TelePath: X:`6%d `7Y:`6%d `7| Target: X:`6%d `7Y:`6%d", px, py, tx, ty))
-  end
-
-  -- Debug: cek fg tile target sekarang
+  -- Step 2: re-check tile
   local ok, tile = pcall(GetTile, tx, ty)
-  if not ok or not tile then
-    LogToConsole("`1[DEBUG] `4GetTile gagal di X:" .. tx .. " Y:" .. ty)
+  if not ok or not tile or tile.fg ~= TargetTileID then
     return false
   end
 
-  LogToConsole(string.format("`1[DEBUG] `7Tile fg sekarang: `6%d `7| TargetTileID: `6%d", tile.fg, TargetTileID))
+  -- Step 3: FindPath ke tile (register posisi ke server seperti referensi asli)
+  _origFindPath(tx, ty, 520)
+  Sleep(50)
 
-  -- Kirim packet tanpa cek (bypass re-check) untuk debug
-  LogToConsole("`1[DEBUG] `2Mengirim packet plant...")
+  -- Step 4: kirim packet plant (dengan px/py, persis referensi asli line 676-684)
   SendPacketRaw(false, {
     type  = 3,
     value = SeedID,
     state = 32,
     x     = tx * 32,
-    y     = ty * 32
+    y     = ty * 32,
+    px    = tx,
+    py    = ty
   })
-  Sleep(200)
-
-  -- Debug: cek fg tile setelah packet dikirim
-  local ok2, tile2 = pcall(GetTile, tx, ty)
-  if ok2 and tile2 then
-    LogToConsole(string.format("`1[DEBUG] `7Tile fg SETELAH packet: `6%d `7(SeedID=`6%d`7)", tile2.fg, SeedID))
-    if tile2.fg == SeedID then
-      LogToConsole("`1[DEBUG] `2BERHASIL ditanam!")
-      return true
-    else
-      LogToConsole("`1[DEBUG] `4GAGAL tanam - tile fg tidak berubah ke SeedID")
-      return false
-    end
-  end
-
+  Sleep(20)
   return true
 end
 
@@ -198,24 +231,49 @@ function Main()
     return
   end
 
-  LogToConsole("`1[AutoPlant] `2Script dimulai (DEBUG MODE).")
-  LogToConsole("`1[AutoPlant] `7Seed Inventory: `6" .. SeedID .. " `7| Tile Target fg: `6" .. TargetTileID)
+  LogToConsole("`1[AutoPlant] `2Script dimulai.")
+  LogToConsole("`1[AutoPlant] `7Seed Inventory : `6" .. SeedID)
+  LogToConsole("`1[AutoPlant] `7Tile Target fg : `6" .. TargetTileID)
+  LogToConsole("`1[AutoPlant] `7World Size     : `6" .. WorldSizeX .. " x " .. WorldSizeY)
+  LogToConsole("`1[AutoPlant] `2Scanning world...")
 
   local targets = ScanTargetTiles()
 
   if #targets == 0 then
-    LogToConsole("`1[AutoPlant] `4Tidak ada tile fg=" .. TargetTileID .. " ditemukan. Script berhenti.")
+    LogToConsole("`1[AutoPlant] `4Tidak ada tile fg=" .. TargetTileID .. " di world. Script berhenti.")
     return
   end
 
-  LogToConsole("`1[AutoPlant] `2Ditemukan `6" .. #targets .. " `2tile. Coba plant tile pertama dulu...")
+  LogToConsole("`1[AutoPlant] `2Ditemukan `6" .. #targets .. " `2tile. Mulai menanam...")
 
-  -- DEBUG: hanya coba 1 tile pertama
-  local tile = targets[1]
-  LogToConsole(string.format("`1[AutoPlant] `7Target pertama: X:`6%d `7Y:`6%d", tile.x, tile.y))
-  PlantAt(tile.x, tile.y)
+  local planted = 0
+  local skipped = 0
 
-  LogToConsole("`1[AutoPlant] `7Debug selesai. Cek log di atas untuk diagnosis.")
+  for i, tile in ipairs(targets) do
+    if not InWorld() then
+      LogToConsole("`1[AutoPlant] `4Koneksi terputus.")
+      break
+    end
+    if not HasSeed(SeedID) then
+      LogToConsole("`1[AutoPlant] `4Seed habis di inventory. Script berhenti.")
+      break
+    end
+
+    LogToConsole(string.format("`1[AutoPlant] `7[%d/%d] `2X:`6%d `2Y:`6%d", i, #targets, tile.x, tile.y))
+
+    local ok = PlantAt(tile.x, tile.y)
+    if ok then planted = planted + 1 else skipped = skipped + 1 end
+  end
+
+  local remaining = ScanTargetTiles()
+  LogToConsole("`1[AutoPlant] `2==============================")
+  LogToConsole("`1[AutoPlant] `2Selesai! Ditanam: `6" .. planted .. " `2| Dilewati: `8" .. skipped)
+  if #remaining == 0 then
+    LogToConsole("`1[AutoPlant] `2Tidak ada lagi tile fg=" .. TargetTileID .. ". Script selesai.")
+  else
+    LogToConsole("`1[AutoPlant] `4Masih ada `6" .. #remaining .. " `4tile tersisa.")
+  end
 end
 
+LogToConsole("`2Version: `21.0")
 Main()
