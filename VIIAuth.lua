@@ -1,4 +1,4 @@
-alowedUser = {
+allowedUser = {
     [492655477210087435] = {
         userid = {
             582039
