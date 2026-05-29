@@ -7,7 +7,7 @@ allowedUser = {
     },
     [1284529881408864298] = {
         userid = {
-            582039
+            996071
         },
         name = "Hanshen"
     }
