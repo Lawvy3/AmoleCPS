@@ -3,8 +3,6 @@ allowedUser = {
         userid = {
             582039
         },
-        name = {
-            "Denver"
-        }
+        name = "Denver"
     }
 }
