@@ -1,0 +1,25 @@
+commands
+│
+├─ [1]
+│  ├─ category = "info"
+│  ├─ icon = 123
+│  └─ items
+│     ├─ [1]
+│     │  ├─ cmd  = "/proxy"
+│     │  └─ desc = "Show proxy information"
+│     │
+│     └─ [2]
+│        ├─ cmd  = "/news"
+│        └─ desc = "Show latest news"
+│
+└─ [2]
+   ├─ category = "drop"
+   ├─ icon = 7188
+   └─ items
+      ├─ [1]
+      │  ├─ cmd  = "/dd"
+      │  └─ desc = "Drop Diamond Lock"
+      │
+      └─ [2]
+         ├─ cmd  = "/wd"
+         └─ desc = "Drop World Lock"
